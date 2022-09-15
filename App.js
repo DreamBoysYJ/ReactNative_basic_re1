@@ -18,7 +18,7 @@ import { theme } from "./colors";
 const STORAGE_KEY = "@toDos";
 
 export default function App() {
-  const [working, setWorking] = useState(true);
+  const [working, setWorking] = useState();
   const [text, setText] = useState("");
   const [toDos, setToDos] = useState({});
 
@@ -33,14 +33,31 @@ export default function App() {
     s !== null ? setToDos(JSON.parse(s)) : null;
   };
 
-  const travel = () => setWorking(false);
-  const work = () => setWorking(true);
+  const travel = async () => {
+    setWorking(false);
+    console.log(`1 : ${working}`);
+    await AsyncStorage.removeItem("@tab");
+    await AsyncStorage.setItem("@tab", JSON.stringify(working));
+    console.log(`2 : ${working}`);
+  };
+
+  const work = async () => {
+    setWorking(true);
+    console.log(working);
+    await AsyncStorage.removeItem("@tab");
+    await AsyncStorage.setItem("@tab", JSON.stringify(working));
+    console.log(working);
+  };
   const onChangeText = (payload) => setText(payload);
   const addToDo = async () => {
     if (text === "") {
       return;
     }
-    const newToDos = { ...toDos, [Date.now()]: { text, working } };
+    const newToDos = {
+      ...toDos,
+      [Date.now()]: { text, working, ["clear"]: false },
+    };
+    console.log(newToDos);
     setToDos(newToDos);
     await saveToDos(newToDos);
     setText("");
@@ -70,6 +87,22 @@ export default function App() {
       ]);
     }
   };
+
+  async function getState() {
+    const t = await AsyncStorage.getItem("@tab");
+    const tabState = JSON.parse(t);
+    if (tabState === null) {
+      return setWorking(true);
+    }
+    tabState ? setWorking(true) : setWorking(false);
+  }
+
+  useEffect(() => {
+    console.log("refreshed");
+    getState();
+    loadToDos();
+    console.log(working);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -122,7 +155,7 @@ export default function App() {
                   {toDos[key].text}
                 </Text>
                 <TouchableOpacity onPress={() => deleteToDos(key)}>
-                  <Fontisto name="trash" size={18} color="tomato" />
+                  <Fontisto name="trash" size={23} color="tomato" />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -168,7 +201,7 @@ const styles = StyleSheet.create({
   },
   toDoText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "600",
   },
 });
